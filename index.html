@@ -643,7 +643,22 @@ body {
 /* ══════════════════════════════════════
    GAME EXAMPLE CARD
 ══════════════════════════════════════ */
-.pdf-download-btn {
+.session-picker { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.session-option {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; border-radius: 10px; cursor: pointer;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid rgba(255,255,255,0.1);
+  transition: all 0.2s;
+}
+.session-option:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); }
+.session-option.selected { background: rgba(58,172,226,0.12); border-color: rgba(58,172,226,0.45); }
+.session-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.session-name { font-size: 0.88rem; font-weight: 700; color: white; }
+.session-date { font-size: 0.72rem; color: var(--text-dim); margin-top: 1px; }
+.session-option.selected .session-name { color: #5DC8F5; }
+
+
   display: inline-flex; align-items: center; gap: 7px;
   background: rgba(58,172,226,0.1);
   border: 1.5px solid rgba(58,172,226,0.35);
@@ -1053,6 +1068,25 @@ body {
     <div id="form-beginners-afternoon">
       <div class="form-group"><label>שם פרטי *</label><input type="text" placeholder="הזינו שם פרטי" id="ba-first"></div>
       <div class="form-group"><label>שם משפחה *</label><input type="text" placeholder="הזינו שם משפחה" id="ba-last"></div>
+      <div class="form-group">
+        <label>סוג ההדרכה *</label>
+        <div class="session-picker" id="session-beginners-afternoon">
+          <div class="session-option" onclick="selectSession('beginners-afternoon', this)" data-value="מתחילים — יום א׳ 8/3 | 14:00">
+            <span class="session-dot" style="background:#9B7CE0;"></span>
+            <div>
+              <div class="session-name">מתחילים — זום + גוגל פורמס</div>
+              <div class="session-date">יום א׳ 8/3 · 14:00</div>
+            </div>
+          </div>
+          <div class="session-option" onclick="selectSession('beginners-afternoon', this)" data-value="מתקדמים — ב׳+ד׳ 9/3 ו-11/3 | 14:00">
+            <span class="session-dot" style="background:#2DD4BF;"></span>
+            <div>
+              <div class="session-name">מתקדמים — Claude AI + Skills</div>
+              <div class="session-date">ב׳ + ד׳ · 9/3 ו-11/3 · 14:00</div>
+            </div>
+          </div>
+        </div>
+      </div>
       <button class="form-submit" onclick="submitForm('beginners-afternoon')">אני נרשם/ת להדרכה ✓</button>
     </div>
     <div class="success-msg" id="success-beginners-afternoon">
@@ -1073,6 +1107,25 @@ body {
     <div id="form-advanced">
       <div class="form-group"><label>שם פרטי *</label><input type="text" placeholder="הזינו שם פרטי" id="adv-first"></div>
       <div class="form-group"><label>שם משפחה *</label><input type="text" placeholder="הזינו שם משפחה" id="adv-last"></div>
+      <div class="form-group">
+        <label>סוג ההדרכה *</label>
+        <div class="session-picker" id="session-advanced">
+          <div class="session-option" onclick="selectSession('advanced', this)" data-value="מתחילים — יום א׳ 8/3 | 14:00">
+            <span class="session-dot" style="background:#9B7CE0;"></span>
+            <div>
+              <div class="session-name">מתחילים — זום + גוגל פורמס</div>
+              <div class="session-date">יום א׳ 8/3 · 14:00</div>
+            </div>
+          </div>
+          <div class="session-option" onclick="selectSession('advanced', this)" data-value="מתקדמים — ב׳+ד׳ 9/3 ו-11/3 | 14:00">
+            <span class="session-dot" style="background:#2DD4BF;"></span>
+            <div>
+              <div class="session-name">מתקדמים — Claude AI + Skills</div>
+              <div class="session-date">ב׳ + ד׳ · 9/3 ו-11/3 · 14:00</div>
+            </div>
+          </div>
+        </div>
+      </div>
       <button class="form-submit" style="background:linear-gradient(130deg,#2DD4BF,#7253C0);" onclick="submitForm('advanced')">אני נרשם/ת להדרכה ✓</button>
     </div>
     <div class="success-msg" id="success-advanced">
@@ -1292,6 +1345,21 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// ── Session picker ──
+function selectSession(modalId, el) {
+  document.querySelectorAll('#session-' + modalId + ' .session-option')
+    .forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ── Google Sheets integration ──
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzVdKweyNizhsqiVURix5Vy-V5andrX2-e4fxiRQlCY80cnbYxgo_md-ozcqWK3idf6/exec';
+
+const TRACK_NAMES = {
+  'beginners-afternoon': 'מתחילים — יום א׳ 14:00',
+  'advanced':            'מתקדמים — ב׳+ד׳ 14:00'
+};
+
 // ── Form submission ──
 function submitForm(id) {
   const form = document.getElementById('form-' + id);
@@ -1307,12 +1375,37 @@ function submitForm(id) {
       inp.style.boxShadow = '';
     }
   });
+
+  // Validate session selection
+  const sessionPicker = document.getElementById('session-' + id);
+  const selectedSession = sessionPicker?.querySelector('.session-option.selected');
+  if (sessionPicker && !selectedSession) {
+    sessionPicker.style.outline = '2px solid rgba(240,96,96,0.5)';
+    sessionPicker.style.borderRadius = '10px';
+    valid = false;
+  } else if (sessionPicker) {
+    sessionPicker.style.outline = '';
+  }
+
   if (!valid) return;
 
+  // Collect values
+  const firstName = form.querySelector('input[placeholder="הזינו שם פרטי"]')?.value.trim() || '';
+  const lastName  = form.querySelector('input[placeholder="הזינו שם משפחה"]')?.value.trim() || '';
+  const track     = selectedSession?.dataset.value || TRACK_NAMES[id] || id;
+
+  // Show success immediately
   form.style.display = 'none';
   document.getElementById('success-' + id).style.display = 'block';
-
   setTimeout(() => closeModal(id), 3000);
+
+  // Send to Google Sheets in background
+  fetch(SHEETS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ firstName, lastName, track })
+  }).catch(err => console.warn('Sheets error:', err));
 }
 </script>
 </body>
